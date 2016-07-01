@@ -1,0 +1,9 @@
+{{ ansible_managed | comment }}
+
+{% for key, val in aide_config_defines.iteritems() | sort -%}
+  {{ "@@define" }} {{ key }} {{ val }}{{ "\n" }}
+{%- endfor %}
+
+{{ aide_config | encode_ini }}
+{{ aide_config_rules | encode_ini(delimiter=" = ") }}
+{{ aide_config_content | encode_ini(delimiter=" ") }}

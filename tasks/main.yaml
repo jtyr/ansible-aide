@@ -1,0 +1,74 @@
+---
+
+- name: Install AIDE package
+  package:
+    name: "{{ aide_pkg }}"
+  tags:
+    - aide_pkg
+
+- name: Create AIDE configuration file
+  template:
+    src: aide.conf.j2
+    dest: "{{ aide_config_file }}"
+  tags:
+    - aide_config
+
+- name: Make sure the AIDE log directory exists
+  file:
+    path: "{{ aide_config_defines_logdir }}"
+    state: directory
+    owner: "{{ aide_permissions_log_dir_owner }}"
+    group: "{{ aide_permissions_log_dir_group }}"
+    mode: "{{ aide_permissions_log_dir_mode }}"
+  tags:
+    - aide_dir
+
+- name: Make sure the AIDE DB directory exists
+  file:
+    path: "{{ aide_config_defines_dbdir }}"
+    state: directory
+    owner: "{{ aide_permissions_db_dir_owner }}"
+    group: "{{ aide_permissions_db_dir_group }}"
+    mode: "{{ aide_permissions_db_dir_mode }}"
+  tags:
+    - aide_dir
+
+- name: Check if AIDE DB already exists
+  stat:
+    path: "{{ aide_config_defines_dbdir }}/aide.db.gz"
+  register: aide_db_check_result
+  tags:
+    - aide_init
+
+- name: Initiate the AIDE DB
+  shell: aide --init && mv {{ aide_config_defines_dbdir }}/{{ aide_config_database_file_new }} {{ aide_config_defines_dbdir }}/{{ aide_config_database_file_old }}
+  when: not aide_db_check_result.stat.exists
+  tags:
+    - aide_init
+
+- name: Get list of all AIDE DB files
+  shell: ls {{ aide_config_defines_dbdir }}/*.gz
+  register: aide_db_files_list
+  changed_when: false
+  failed_when: false
+  tags:
+    - aide_init
+
+- name: Make sure the AIDE DB files have correct permissions
+  file:
+    path: "{{ item }}"
+    owner: "{{ aide_permissions_db_file_owner }}"
+    group: "{{ aide_permissions_db_file_group }}"
+    mode: "{{ aide_permissions_db_file_mode }}"
+  with_items: "{{ aide_db_files_list.stdout_lines }}"
+  tags:
+    - aide_init
+
+- name: Setup AIDE DB update cron job
+  cron:
+    name: AIDE DB update
+    special_time: "{{ aide_cron_time }}"
+    job: "{{ aide_cron_job }}"
+  when: aide_cron
+  tags:
+    - aide_cron
