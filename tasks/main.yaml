@@ -69,6 +69,6 @@
     name: AIDE DB update
     special_time: "{{ aide_cron_time }}"
     job: "{{ aide_cron_job }}"
-  when: aide_cron
+  when: aide_cron == true
   tags:
     - aide_cron
